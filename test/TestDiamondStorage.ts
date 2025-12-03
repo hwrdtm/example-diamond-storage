@@ -172,8 +172,12 @@ describe("DiamondBadStorage", async function () {
     await goodWriteFacetBefore.setOuterValue1(1);
     assert.equal(await goodWriteFacetBefore.getOuterValue1(), 1n);
 
-    await goodWriteFacetBefore.setNestedValue2(0, 2);
-    assert.equal(await goodWriteFacetBefore.getNestedValue2(0), 2n);
+    // ensure we set the storage slots of the first index (0) and second index (1)
+    await goodWriteFacetBefore.setNestedNestedValue1(0, 1);
+    assert.equal(await goodWriteFacetBefore.getNestedNestedValue1(0), 1n);
+
+    await goodWriteFacetBefore.setNestedNestedValue1(1, 2);
+    assert.equal(await goodWriteFacetBefore.getNestedNestedValue1(1), 2n);
 
     // Now, cut a new facet and show that the new storage update is safe.
     // Deploy the GoodWriteFacetAfter contract
@@ -207,12 +211,22 @@ describe("DiamondBadStorage", async function () {
       testDiamondStorage.target,
       deployer
     );
+
+    // write to nested nested value 2, index 0.  if this storage upgrade is safe, this should be fine to do.
     await goodWriteFacetAfter.setNestedNestedValue2(0, 3);
     assert.equal(await goodWriteFacetAfter.getNestedNestedValue2(0), 3n);
 
-    // This is passing which is GREAT and what's expected.
-    assert.equal(await goodWriteFacetAfter.getOuterValue1(), 1n);
-    assert.equal(await goodWriteFacetAfter.getNestedValue2(0), 2n);
+    // now read nested nested value 1, from index 1, which should still be "2"
+    // since we set it to "2" above and haven't changed it since.
+    // but uh-oh, this assertion fails, and shows that it's actually set to "3"
+    assert.equal(await goodWriteFacetAfter.getNestedNestedValue1(1), 2n);
+
+    // what happened?  we had an array of structs of type NestedNestedStructThatCanGrow with 1 item inside it.
+    // we set the first and second index of that array, occupying the first two storage slots for the array.
+    // then, we added an element to NestedNestedStructThatCanGrow (nested nested value 2).  we mutated this element at index 0 to set it to "3".
+    // then, we try to read index 1 and the first element (nested nested value 1), which we have not changed, and should still be set to "2" but it's set to "3".
+    // this is because when we extended the NestedNestedStructThatCanGrow and set index 0 nested nested value 2, the contract uses the same storage slot used for index 1 nested nested value 1, because storage is allocated sequentially in arrays.
+    // this indicates that it's not safe to extend a struct inside an array of structs, because solidity sequentially maps memory in an array of structs.  if instead, a mapping was used, it would be safe, because mapping storage addresses are calculated by a hash of the key.  hashes produce uniformily random output, in a huge address space (2^256) which leaves a lot of "space" between these storage addresses, so, you can add elements to the struct without overwriting the next element.
   });
 });
 
