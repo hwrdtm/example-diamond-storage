@@ -37,17 +37,17 @@ contract GoodWriteFacetBefore {
     }
 
     function getNestedNestedValue1(uint256 index) external view returns (uint256) {
-        assert(index < s().nestedStruct[index].nestedNestedStructThatCanGrow.length);
-        return s().nestedStruct[index].nestedNestedStructThatCanGrow[index].nestedNestedValue1;
+        assert(index < s().nestedStruct[0].nestedNestedStructThatCanGrow.length);
+        return s().nestedStruct[0].nestedNestedStructThatCanGrow[index].nestedNestedValue1;
     }
 
     function setNestedNestedValue1(uint256 index, uint256 value) external {
-        if (index >= s().nestedStruct[index].nestedNestedStructThatCanGrow.length) {
-            s().nestedStruct[index].nestedNestedStructThatCanGrow.push(LibDiamondGoodStorageBefore.NestedNestedStructThatCanGrow({
+        if (index >= s().nestedStruct[0].nestedNestedStructThatCanGrow.length) {
+            s().nestedStruct[0].nestedNestedStructThatCanGrow.push(LibDiamondGoodStorageBefore.NestedNestedStructThatCanGrow({
                 nestedNestedValue1: value
             }));
         } else {
-            s().nestedStruct[index].nestedNestedStructThatCanGrow[index].nestedNestedValue1 = value;
+            s().nestedStruct[0].nestedNestedStructThatCanGrow[index].nestedNestedValue1 = value;
         }
     }
 }
